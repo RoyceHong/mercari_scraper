@@ -4,6 +4,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
+from debug import Debug
 
 import os
 import re
@@ -23,7 +24,7 @@ def _get_soup(url: str) -> BeautifulSoup:
     OPTIONS = Options()
     OPTIONS.headless = False
     OPTIONS.add_argument("--incognito")
-    driver = webdriver.Chrome(options=OPTIONS, executable_path=DRIVER_PATH)
+    driver = webdriver.Chrome(options=OPTIONS)
     driver.get(url)
 
     try: 
@@ -66,7 +67,7 @@ class Mercari:
 
     def fetch_items_pagination(
             self,
-            keyword: str,
+            keyword: str = '推しの子',
             page_id: int = 1,
             price_min: Union[None, str] = None,
             price_max: Union[None, str] = None,
@@ -78,9 +79,12 @@ class Mercari:
         if soup is None:
             return [], None
 
+        Debug.save_html(soup.prettify())
         results = []
-
         for item in soup.find_all('li', {"data-testid": "item-cell"}):
+            title_element = item.find("span", {"data-testid": "thumbnail-item-name"})
+            title = title_element.get_text(strip=True) if title_element else "N/A"
+
             price_element = item.find(class_="merPrice")
             price = price_element.text if price_element else "N/A"
 
@@ -91,6 +95,7 @@ class Mercari:
                 full_link = link if link.startswith('http') else 'https://jp.mercari.com' + link
                 results.append(
                     {
+                        "title": title,
                         "price": price, 
                         "item": full_link
                     }
@@ -101,7 +106,7 @@ class Mercari:
     def _fetch_url(
             self,
             page: int = 1,
-            keyword: str = 'bicycle',
+            keyword: str = '推しの子',
             price_min: Union[None, str] = None,
             price_max: Union[None, str] = None,
             e_flag: bool = False,
@@ -131,3 +136,5 @@ class Mercari:
     @property
     def name(self) -> str:
         return 'mercari'
+    
+
